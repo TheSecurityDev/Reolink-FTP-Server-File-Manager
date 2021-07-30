@@ -1,3 +1,17 @@
+# Reolink FTP Server Upload File Manager, made by TheSecurityDev.
+# 
+# It's made to run on a FTP server (like a Raspberry Pi), for use with Reolink NVRs and security cameras to automatically delete old recordings, and organize the files, etc.
+# The script runs once, so you have to use a cronjob to execute periodically.
+# 
+# You can setup the script to run automatically by typing 'crontab -e' in your linux terminal, and adding a line like this:
+#   */5 * * * * python3 /home/pi/manage_uploaded_files_task.py >> /home/pi/manage_uploaded_files_task.log 2>&1  # Runs the script every 5 minutes
+#   # You'll probably need to change your path and file names!
+# 
+# REQUIREMENTS:
+#   Requires Python 3.9. Requires the humanize library, which you should be able to install with 'pip3 install humanize'.
+#     You can use Python 3.7 (default on Raspberry Pi), but you'll have some errors to fix, mainly related to static typing.
+#     So for example, you'll have to change. 'list[RecordedFile]' to just 'list' for statically typed return types.
+
 
 import os
 import re
@@ -10,19 +24,19 @@ from humanize.time import precisedelta
 HOME_PATH = os.path.expanduser('~')
 
 # You can set these values however you want
-# NOTE: Change below to HOME_PATH on the actual server (current is for testing)
-upload_dir = os.path.join(HOME_PATH, "Reolink")  # Where the files are uploaded by the device. NOTE: In my NVR settings, for FTP upload options there is a place to input a directory to upload. However, it doesn't seem to actually work (always uploads to HOME_PATH), so that's why I made my own archiving script as well.
+upload_dir = os.path.join(HOME_PATH, "")  # Where the files are uploaded by the device. NOTE: In my NVR settings, for FTP upload options there is a place to input a directory to upload. However, it doesn't seem to actually work (always uploads to HOME_PATH), so that's why I made my own archiving script as well.
 archive_dir = upload_dir + os.sep + "Archive"  # Where the files are stored (moved from the upload_dir)
-min_unmodified_mins_before_archive = 5  # Only archive files that haven't been modified in this much time (prevent archiving files that are still being uploaded)
+min_unmodified_mins_before_archive = 5  # Only archive files that haven't been modified in this much time (prevent archiving files that are still being uploaded). Honestly it's probably ok to do a minute or less, but I just wanted to be safe.
 min_free_space_mb = 2000  # The amount of storage space (MB) at which a deletion will be triggered. If the free space goes below this value, then it will try to delete old files until the remaining storage space goes above this value plus the specified extra amount.
 extra_mb_to_delete = 500  # After the delete threshold is reached, free this amount (MB) past the threshold. You can use this to free up extra space for the files before they are archived, since the deletion is run first.
-# Debug settings
+# Debug settings (change to False in production)
 verbose_logging = True
 simulate_delete_files = True
 simulate_move_files = True
 simulate_delete_empty_subdirs = True
 
 # You shouldn't change these values
+# They are used to detect the recording files
 PHOTO_FILE_EXTENSION = '.jpg'
 VIDEO_FILE_EXTENSION = '.mp4'
 device_name_regex_string = r'[a-zA-Z\d \-=+\[\]{}]+'  # These seem to be the only characters that Reolink allows for device names
