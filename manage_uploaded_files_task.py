@@ -154,17 +154,17 @@ def get_all_old_files_to_delete(min_total_bytes: int) -> tuple[list[RecordedFile
     all_files_to_delete: list[RecordedFile] = []
     total_size: int = 0
     # Year folders
-    year_dirs = get_sub_dirs(archive_dir, full_paths=True)
+    year_dirs = get_sub_dirs(archive_dir, full_paths=True, sort_alphabetically=True)
     for year_dir in year_dirs:
         if total_size >= min_total_bytes:
             break
         # Month folders
-        month_dirs = get_sub_dirs(year_dir, full_paths=True)
+        month_dirs = get_sub_dirs(year_dir, full_paths=True, sort_alphabetically=True)
         for month_dir in month_dirs:
             if total_size >= min_total_bytes:
                 break
             # Day folders
-            day_dirs = get_sub_dirs(month_dir, full_paths=True)
+            day_dirs = get_sub_dirs(month_dir, full_paths=True, sort_alphabetically=True)
             for day_dir in day_dirs:
                 if total_size >= min_total_bytes:
                     break
@@ -303,10 +303,15 @@ def has_recorded_file_been_unmodified_for_(recorded_file: RecordedFile, seconds:
 
 
 
-def get_sub_dirs(directory: str, full_paths: bool = False) -> list[str]:
+def get_sub_dirs(directory: str, full_paths: bool = False, sort_alphabetically: bool = True) -> list[str]:
     sub_dirs = []
     if os.path.exists(directory):
-        for sub_dir_name in os.listdir(directory):
+        # Load sub directories and sort alphabetically if required
+        listed_sub_dirs = os.listdir(directory)
+        if sort_alphabetically:
+            listed_sub_dirs.sort()
+        # Go through sub directories
+        for sub_dir_name in listed_sub_dirs:
             sub_dir_path = os.path.join(directory, sub_dir_name)
             if os.path.isdir(sub_dir_path):
                 if full_paths:
