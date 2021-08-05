@@ -41,9 +41,9 @@ PHOTO_FILE_EXTENSION = '.jpg'
 VIDEO_FILE_EXTENSION = '.mp4'
 device_name_regex_string = r'[a-zA-Z\d \-=+\[\]{}]+'  # These seem to be the only characters that Reolink allows for device names
 date_regex_string = r'([1-3]\d\d\d)([0-1]\d)([0-3]\d)([0-2]\d)([0-5]\d)([0-5]\d)'
-base_file_name_regex_string = '({})_([\d]*)_?{}'.format(device_name_regex_string, date_regex_string)
-photo_file_name_regex = re.compile('^{}{}$'.format(base_file_name_regex_string, PHOTO_FILE_EXTENSION))
-video_file_name_regex = re.compile('^{}{}$'.format(base_file_name_regex_string, VIDEO_FILE_EXTENSION))
+base_file_name_regex_string = f'({device_name_regex_string})_([\d]*)_?{date_regex_string}'
+photo_file_name_regex = re.compile(f'^{base_file_name_regex_string}{PHOTO_FILE_EXTENSION}$')
+video_file_name_regex = re.compile(f'^{base_file_name_regex_string}{VIDEO_FILE_EXTENSION}$')
 
 
 # Terminal colors/formatting
@@ -77,14 +77,14 @@ class RecordedFile(object):
         if type == self.TYPE_PHOTO or type == self.TYPE_VIDEO:
             self.type = type
         else:
-            self.error("Unknown file type '{}'.".format(type))
+            self.error(f"Unknown file type '{type}'.")
        
         # Set file name and path
         self.name = file_name
         self.path = file_path
         
         if not os.path.isfile(file_path):
-            self.error("'{}' is not a valid file.".format(file_path))
+            self.error(f"'{file_path}' is not a valid file.")
         else:
             self.size = os.path.getsize(file_path)  # Set file size
             self.last_modified_ts = os.path.getmtime(file_path)  # Set the file last modified value
@@ -104,7 +104,7 @@ class RecordedFile(object):
             hour = groups[5]
             minute = groups[6]
             second = groups[7]
-            self.datetime = datetime.fromisoformat('{}-{}-{}T{}:{}:{}'.format(year, month, day, hour, minute, second))
+            self.datetime = datetime.fromisoformat(f'{year}-{month}-{day}T{hour}:{minute}:{second}')
         
         # self.print_debug()
     
@@ -113,10 +113,10 @@ class RecordedFile(object):
         return archive_dir + date_path_str
 
     def error(self, msg: str):
-        print_red("Error while creating the RecordedFile object!\n\tReason: {}".format(msg))
+        print_red(f"Error while creating the RecordedFile object!\n\tReason: {msg}")
     
     def print_debug(self):
-        print("Type: {}; Name: '{}'; Path: '{}'; Size: {}; DeviceName: '{}'; Channel: {} ('{}'); DateTime: {}".format(self.type, self.name, self.path, self.size, self.device_name, self.channel_num, self.channel_str, self.datetime))
+        print(f"Type: {self.type}; Name: '{self.name}'; Path: '{self.path}'; Size: {self.size}; DeviceName: '{self.device_name}'; Channel: {self.channel_num} ('{self.channel_str}'); DateTime: {self.datetime}")
 
 
 
@@ -141,10 +141,10 @@ def check_bytes_to_free() -> int:
     free_bytes = get_free_bytes(archive_dir)
     if free_bytes <= min_free_bytes:
         bytes_to_free = (min_free_bytes - free_bytes) + mb_to_bytes(extra_mb_to_delete)
-        print_yellow("We need to free some space! ({} above the threshold). Will try to free at least {}.".format(humanizesize(min_free_bytes - free_bytes), humanizesize(bytes_to_free)))
+        print_yellow(f"We need to free some space! ({humanizesize(min_free_bytes - free_bytes)} above the threshold). Will try to free at least {humanizesize(bytes_to_free)}.")
         return bytes_to_free
     else:
-        print_green("We don't need to free any space. ({} below the threshold)".format(humanizesize(free_bytes - min_free_bytes)))
+        print_green(f"We don't need to free any space. ({humanizesize(free_bytes - min_free_bytes)} below the threshold).")
         return 0
 
 
@@ -197,7 +197,7 @@ def delete_files(files_to_delete: list[RecordedFile], files_to_delete_total_size
     if num_of_files_to_delete == 0:
         print_cyan("No files to delete.")
     else:
-        print_blue("Deleting {} file{} ({})...".format(num_of_files_to_delete, "" if num_of_files_to_delete == 1 else "s", humanizesize(files_to_delete_total_size)))
+        print_blue(f"Deleting {humanize_file_count(num_of_files_to_delete)} ({humanizesize(files_to_delete_total_size)})...")
 
         # Delete files
         deleted_files = 0
@@ -207,22 +207,22 @@ def delete_files(files_to_delete: list[RecordedFile], files_to_delete_total_size
             path = recorded_file.path
             try:
                 if verbose_logging:
-                    print("\tDeleting '{}'...".format(path))
+                    print(f"\tDeleting '{path}'...")
                 if simulate_delete_files:
-                    print_yellow("\tSimulated delete file: '{}'".format(path))
+                    print_yellow(f"\tSimulated delete file: '{path}'")
                 else:
                     os.remove(path)
                 deleted_files += 1
                 deleted_total_size += recorded_file.size
             except OSError as e:
-                print_red("\tError deleting '{}'!\n\tReason: {}".format(path, e))
+                print_red(f"\tError deleting '{path}'!\n\tReason: {e}")
                 failed_files += 1
         
         # Print results
         if deleted_files > 0:
-            print_green("Successfully deleted {} file{} ({}).".format(deleted_files, "" if deleted_files == 1 else "s", humanizesize(deleted_total_size)))
+            print_green(f"Successfully deleted {humanize_file_count(deleted_files)} ({humanizesize(deleted_total_size)}).")
         if failed_files > 0:
-            print_yellow("Failed to delete {} file{}.".format(failed_files, "" if failed_files == 1 else "s"))
+            print_yellow(f"Failed to delete {humanize_file_count(failed_files)}.")
 
 
 
@@ -233,7 +233,7 @@ def archive_new_files():
     if num_of_files_to_archive == 0:
         print_cyan("No files to archive.")
     else:
-        print_blue("Archiving {} file{}...".format(num_of_files_to_archive, "" if num_of_files_to_archive == 1 else "s"))
+        print_blue(f"Archiving {humanize_file_count(num_of_files_to_archive)}...")
         
         # Archive files (move to the archive directory)
         moved_files = 0
@@ -244,9 +244,9 @@ def archive_new_files():
             new_path = recorded_file.generate_archive_dir_string()
             try:
                 if verbose_logging:
-                    print("\tMoving '{}' to '{}'...".format(current_path, new_path))
+                    print(f"\tMoving '{current_path}' to '{new_path}'...")
                 if simulate_move_files:
-                    print_yellow("\tSimulated move file: '{}' to '{}'...".format(current_path, new_path))
+                    print_yellow(f"\tSimulated move file: '{current_path}' to '{new_path}'...")
                 else:
                     if not os.path.exists(new_path):
                         os.makedirs(new_path)
@@ -254,14 +254,14 @@ def archive_new_files():
                 moved_files += 1
                 moved_files_total_size += recorded_file.size
             except OSError as e:
-                print_red("\tError moving '{}' to '{}'!\n\tReason: {}".format(current_path, new_path, e))
+                print_red(f"\tError moving '{current_path}' to '{new_path}'!\n\tReason: {e}")
                 failed_files += 1
         
         # Print results
         if moved_files > 0:
-            print_green("Successfully moved {} file{} ({}).".format(moved_files, "" if moved_files == 1 else "s", humanizesize(moved_files_total_size)))
+            print_green(f"Successfully moved {humanize_file_count(moved_files)} ({humanizesize(moved_files_total_size)}).")
         if failed_files > 0:
-            print_yellow("Failed to move {} file{}.".format(failed_files, "" if failed_files == 1 else "s"))
+            print_yellow(f"Failed to move {humanize_file_count(failed_files)}.")
 
 
 
@@ -322,7 +322,7 @@ def get_sub_dirs(directory: str, full_paths: bool = False, sort_alphabetically: 
 
 
 def delete_empty_sub_dirs(directory: str):
-    print_blue("Checking for and removing empty subfolders in '{}'...".format(directory))
+    print_blue(f"Checking for and removing empty subfolders in '{directory}'...")
     dirs_deleted = 0
     walk = list(os.walk(directory))
     for path, _, _ in walk[::-1]:
@@ -335,16 +335,16 @@ def delete_empty_sub_dirs(directory: str):
             # Delete the directory
             try:
                 if verbose_logging:
-                    print("\tDeleting empty directory '{}'...".format(path))
+                    print(f"\tDeleting empty directory '{path}'...")
                 if simulate_delete_empty_subdirs:
-                    print_yellow("\tSimulated delete directory: '{}'".format(path))
+                    print_yellow(f"\tSimulated delete directory: '{path}'")
                 else:
                     os.rmdir(path)
                 dirs_deleted += 1
             except OSError as e:
-                print_red("\tError removing empty directory '{}'!\n\tReason: {}".format(path, e))
+                print_red(f"\tError removing empty directory '{path}'!\n\tReason: {e}")
     if dirs_deleted > 0:
-        print_green("Deleted {} empty folders.".format(dirs_deleted))
+        print_green(f"Deleted {dirs_deleted} empty folder(s).")
     else:
         print_cyan("No empty folders.")
 
@@ -363,7 +363,10 @@ def mb_to_bytes(mb: float) -> int:
 
 # naturalsize, but with default 2 decimals
 def humanizesize(bytes: int, decimals: int = 2) -> str:
-    return naturalsize(bytes, format="%.{}f".format(decimals))
+    return naturalsize(bytes, format=f"%.{decimals}f")
+
+def humanize_file_count(file_count: int) -> str:
+    return f"{file_count} file{'' if file_count == 1 else 's'}"
 
 
 # Terminal print functions
@@ -389,12 +392,12 @@ def print_purple(msg: str):
 
 if __name__ == "__main__":
     start_time = datetime.now()
-    print_purple("[{}] - Script started".format(start_time))
+    print_purple(f"[{start_time}] - Script started")
     try:
         main()
         end_time = datetime.now()
-        print_purple("[{}] - Script finished (took {})\n".format(end_time, precisedelta(end_time - start_time, minimum_unit="milliseconds")))
+        print_purple(f"[{end_time}] - Script finished (took {precisedelta(end_time - start_time, minimum_unit='milliseconds')})\n")
     except Exception as e:
-        print(bcolors.RED + "[{}] - Script terminated with an error: '{}'".format(datetime.now(), e))
+        print(bcolors.RED + f"[{datetime.now()}] - Script terminated with an error: '{e}'")
         raise e
 
