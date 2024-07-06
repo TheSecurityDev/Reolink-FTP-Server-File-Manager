@@ -25,11 +25,11 @@ HOME_PATH = os.path.expanduser('~')
 
 # You can set these values however you want
 upload_dir = os.path.join(HOME_PATH, "")  # Where the files are uploaded by the device. NOTE: In my NVR settings, for FTP upload options there is a place to input a directory to upload. However, it doesn't seem to actually work (always uploads to HOME_PATH), so that's why I made my own archiving script as well.
-archive_dir = upload_dir + os.sep + "Archive"  # Where the files are stored (moved from the upload_dir)
+archive_dir = upload_dir + os.sep + "RecordingArchives"  # Where the files are stored (moved to from the upload_dir); TODO: Change to your desired archive directory
 min_unmodified_mins_before_archive = 5  # Only archive files that haven't been modified in this much time (prevent archiving files that are still being uploaded). Honestly it's probably ok to do a minute or less, but I just wanted to be safe.
 min_free_space_mb = 2000  # The amount of storage space (MB) at which a deletion will be triggered. If the free space goes below this value, then it will try to delete old files until the remaining storage space goes above this value plus the specified extra amount.
 extra_mb_to_delete = 500  # After the delete threshold is reached, free this amount (MB) past the threshold. You can use this to free up extra space for the files before they are archived, since the deletion is run first.
-# Debug settings (change to False in production)
+# Debug settings; TODO: Change these to False after testing the script so it will actually work.
 verbose_logging = True
 simulate_delete_files = True
 simulate_move_files = True
@@ -266,36 +266,40 @@ def archive_new_files():
 
 
 def get_recorded_files(directory: str, min_mod_age: int = 0, include_video: bool = True, include_photo: bool = True, oldest_first: bool = True) -> list[RecordedFile]:
-    # Create the directory if it doesn't exist
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    # Get all the recorded files
-    recorded_files: list[RecordedFile] = []
-    dir_list = os.listdir(directory)  # Get the files and folders in the directory
-    for file_name in dir_list:
-        file_path = os.path.join(directory, file_name)
-        if os.path.isfile(file_path):  # Only list files
-            if include_photo:
-                # Check if file name matches photo name regex
-                photo_match = photo_file_name_regex.match(file_name)
-                if photo_match:
-                    # Create RecordedFile object and add to list if it matches the last modification time requirement
-                    recorded_photo = RecordedFile(RecordedFile.TYPE_PHOTO, file_name, file_path, photo_match)
-                    if has_recorded_file_been_unmodified_for_(recorded_photo, min_mod_age):
-                        recorded_files.append(recorded_photo)
-                    continue  # Since it's a photo, skip checking if it's a video
-            if include_video:
-                # Check if file name matches video name regex
-                video_match = video_file_name_regex.match(file_name)
-                if video_match:
-                    # Create RecordedFile object and add to list if it matches the last modification time requirement
-                    recorded_video = RecordedFile(RecordedFile.TYPE_VIDEO, file_name, file_path, video_match)
-                    if has_recorded_file_been_unmodified_for_(recorded_video, min_mod_age):
-                        recorded_files.append(recorded_video)
-                    continue  # Not really necessary, since it's the last one
-    
-    recorded_files.sort(key=lambda recorded_file: recorded_file.datetime.timestamp(), reverse=not oldest_first)  # Sort by time
-    return recorded_files
+    try:
+        # Create the directory if it doesn't exist
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        # Get all the recorded files
+        recorded_files: list[RecordedFile] = []
+        dir_list = os.listdir(directory)  # Get the files and folders in the directory
+        for file_name in dir_list:
+            file_path = os.path.join(directory, file_name)
+            if os.path.isfile(file_path):  # Only list files
+                if include_photo:
+                    # Check if file name matches photo name regex
+                    photo_match = photo_file_name_regex.match(file_name)
+                    if photo_match:
+                        # Create RecordedFile object and add to list if it matches the last modification time requirement
+                        recorded_photo = RecordedFile(RecordedFile.TYPE_PHOTO, file_name, file_path, photo_match)
+                        if has_recorded_file_been_unmodified_for_(recorded_photo, min_mod_age):
+                            recorded_files.append(recorded_photo)
+                        continue  # Since it's a photo, skip checking if it's a video
+                if include_video:
+                    # Check if file name matches video name regex
+                    video_match = video_file_name_regex.match(file_name)
+                    if video_match:
+                        # Create RecordedFile object and add to list if it matches the last modification time requirement
+                        recorded_video = RecordedFile(RecordedFile.TYPE_VIDEO, file_name, file_path, video_match)
+                        if has_recorded_file_been_unmodified_for_(recorded_video, min_mod_age):
+                            recorded_files.append(recorded_video)
+                        continue  # Not really necessary, since it's the last one
+        
+        recorded_files.sort(key=lambda recorded_file: recorded_file.datetime.timestamp(), reverse=not oldest_first)  # Sort by time
+        return recorded_files
+    except OSError as e:
+        print_red(f"Error while getting recorded files in '{directory}'!\n\tReason: {e}")
+        return []
 
 
 def has_recorded_file_been_unmodified_for_(recorded_file: RecordedFile, seconds: int) -> bool:
