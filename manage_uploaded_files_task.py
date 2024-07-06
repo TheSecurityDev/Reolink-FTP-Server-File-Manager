@@ -27,8 +27,8 @@ HOME_PATH = os.path.expanduser('~')
 upload_dir = os.path.join(HOME_PATH, "")  # Where the files are uploaded by the device. NOTE: In my NVR settings, for FTP upload options there is a place to input a directory to upload. However, it doesn't seem to actually work (always uploads to HOME_PATH), so that's why I made my own archiving script as well.
 archive_dir = upload_dir + os.sep + "RecordingArchives"  # Where the files are stored (moved to from the upload_dir); TODO: Change to your desired archive directory
 min_unmodified_mins_before_archive = 5  # Only archive files that haven't been modified in this much time (prevent archiving files that are still being uploaded). Honestly it's probably ok to do a minute or less, but I just wanted to be safe.
-min_free_space_mb = 2000  # The amount of storage space (MB) at which a deletion will be triggered. If the free space goes below this value, then it will try to delete old files until the remaining storage space goes above this value plus the specified extra amount.
-extra_mb_to_delete = 500  # After the delete threshold is reached, free this amount (MB) past the threshold. You can use this to free up extra space for the files before they are archived, since the deletion is run first.
+min_free_space_mb = 2048  # The amount of storage space (MB) at which a deletion will be triggered. If the free space goes below this value, then it will try to delete old files until the remaining storage space goes above this value plus the specified extra amount.
+extra_mb_to_delete = 1024  # After the delete threshold is reached, free this amount (MB) past the threshold. You can use this to free up extra space for the files before they are archived, since the deletion is run first.
 # Debug settings; TODO: Change these to False after testing the script so it will actually work.
 verbose_logging = True
 simulate_delete_files = True
